@@ -10,8 +10,10 @@ namespace Microsoft.DotNet.ImageBuilder
 {
     public static class Utilities
     {
-        private static string TagVariablePattern = $"\\$\\((?<{VariableGroupName}>[\\w]+)\\)";
+        private static string TagVariablePattern = $"\\$\\((?<{VariableGroupName}>[\\w:\\-.]+)\\)";
         private static string TimeStamp { get; } = DateTime.UtcNow.ToString("yyyymmddhhmmss");
+        private const string SystemVariablePrefix = "system:";
+        private const string TagRefPrefix = "tagRef:";
         private const string VariableGroupName = "variable";
 
         public static string SubstituteVariables(
@@ -23,20 +25,22 @@ namespace Microsoft.DotNet.ImageBuilder
             {
                 string variableName = match.Groups[VariableGroupName].Value;
                 string variableValue = null;
-                if (userVariables == null || !userVariables.TryGetValue(variableName, out variableValue))
+
+                if (variableName.StartsWith(SystemVariablePrefix) || variableName.StartsWith(TagRefPrefix))
                 {
-                    if (getContextBasedSystemValue != null)
-                    {
-                        variableValue = getContextBasedSystemValue(variableName);
-                    }
-                    if (variableValue == null && variableName == "TimeStamp")
-                    {
-                        variableValue = TimeStamp;
-                    }
-                    if (variableValue == null)
-                    {
-                        throw new InvalidOperationException($"A value was not found for the variable '{match.Value}'");
-                    }
+                    variableName = variableName.Substring(SystemVariablePrefix.Length);
+                }
+                if (getContextBasedSystemValue != null)
+                {
+                    variableValue = getContextBasedSystemValue(variableName);
+                }
+                if (variableValue == null && variableName == "TimeStamp")
+                {
+                    variableValue = TimeStamp;
+                }
+                if (variableValue == null && (userVariables == null || !userVariables.TryGetValue(variableName, out variableValue)))
+                {
+                    throw new InvalidOperationException($"A value was not found for the variable '{match.Value}'");
                 }
                 expression = expression.Replace(match.Value, variableValue);
             }

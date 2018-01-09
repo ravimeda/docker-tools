@@ -44,6 +44,15 @@ namespace Microsoft.DotNet.ImageBuilder.ViewModel
                 .Distinct();
         }
 
+        public string GetReferenceVariableValue(string variableName)
+        {
+            string variableValue = null;
+            variableValue = GetAllTags()
+                .Single(kvp => kvp.Model.Id == variableName).Name;
+
+            return variableValue;
+        }
+
         public bool IsExternalImage(string image)
         {
             return Repos.All(repo => repo.IsExternalImage(image));
